@@ -1,15 +1,15 @@
 import datetime
-import logging
 import sys
 import traceback
 from logging.config import dictConfig
 
 import aiohttp
-import core.database as db
 import discord
 from discord.ext import commands
 from discord.ext.commands import CommandError, Context
 from discord.ext.commands.errors import ExtensionAlreadyLoaded
+
+import core.database as db
 
 INITIAL_EXTENSIONS = [
     # 'cogs.activities',
@@ -146,7 +146,7 @@ class PizzaHat(commands.Bot):
 
         for ext in INITIAL_EXTENSIONS:
             try:
-                self.public_extensions = await self.load_extension(ext)
+                await self.load_extension(ext)
                 success += 1
 
             except Exception as e:

@@ -1,12 +1,13 @@
+import logging
 import os
 
-from core.bot import PizzaHat
 from dotenv import load_dotenv
-import core.bot as bot_core
+
+from core.bot import PizzaHat
 
 load_dotenv()
 
-logger = bot_core.logging.getLogger("bot")
+logger = logging.getLogger("bot")
 
 if __name__ == "__main__":
     bot = PizzaHat()

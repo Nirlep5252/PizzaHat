@@ -2,13 +2,11 @@ import datetime
 import os
 
 import discord
-import requests
-import topgg
-from core.bot import PizzaHat
-from core.cog import Cog
-from discord.ext import tasks
 from dotenv import load_dotenv
 from humanfriendly import format_timespan
+
+from core.bot import PizzaHat
+from core.cog import Cog
 
 load_dotenv()
 
@@ -49,32 +47,34 @@ class Events(Cog):
     @Cog.listener()
     async def on_ready(self):
         await self.bot.db.execute(  # type: ignore
-            """CREATE TABLE IF NOT EXISTS warnlogs 
+            """CREATE TABLE IF NOT EXISTS warnlogs
             (guild_id BIGINT, user_id BIGINT, warns TEXT[], time NUMERIC[])"""
         )
 
         await self.bot.db.execute(  # type: ignore
-            """CREATE TABLE IF NOT EXISTS modlogs 
+            """CREATE TABLE IF NOT EXISTS modlogs
             (guild_id BIGINT PRIMARY KEY, channel_id BIGINT)"""
         )
 
         await self.bot.db.execute(  # type: ignore
-            """CREATE TABLE IF NOT EXISTS automod 
+            """CREATE TABLE IF NOT EXISTS automod
             (guild_id BIGINT PRIMARY KEY, enabled BOOL)"""
         )
 
         await self.bot.db.execute(  # type: ignore
-            """CREATE TABLE IF NOT EXISTS staff_role 
+            """CREATE TABLE IF NOT EXISTS staff_role
             (guild_id BIGINT PRIMARY KEY, role_id BIGINT)"""
         )
 
         await self.bot.db.execute(  # type: ignore
-            """CREATE TABLE IF NOT EXISTS tags 
+            """CREATE TABLE IF NOT EXISTS tags
             (guild_id BIGINT, tag_name TEXT, content TEXT, creator BIGINT)"""
         )
 
     async def get_logs_channel(self, guild_id):
-        data = await self.bot.db.fetchval("SELECT channel_id FROM modlogs WHERE guild_id=$1", guild_id)  # type: ignore
+        data = await self.bot.db.fetchval(
+            "SELECT channel_id FROM modlogs WHERE guild_id=$1", guild_id
+        )  # type: ignore
         if data:
             return self.bot.get_channel(data)
 
