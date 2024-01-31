@@ -1,13 +1,16 @@
+from typing import List, Mapping, Optional, Set
+
 import discord
-from core.bot import PizzaHat
-from core.cog import Cog
 from discord import ButtonStyle, Interaction, ui
 from discord.ext import commands
 
-from .config import COG_EXCEPTIONS
+from core.bot import PizzaHat
+from core.cog import Cog
+from utils.config import COG_EXCEPTIONS
 
 
-def bot_help_embed(ctx: commands.Context):
+def bot_help_embed(ctx: commands.Context[PizzaHat]):
+    assert ctx.bot.user is not None, "Bot is not logged in yet."
     em = discord.Embed(
         title=f"{ctx.bot.user.name} Help",
         timestamp=ctx.message.created_at,
@@ -32,7 +35,7 @@ Use the dropdown menu to select a category.\n
         inline=False,
     )
 
-    em.set_thumbnail(url=ctx.bot.user.avatar.url)
+    em.set_thumbnail(url=ctx.bot.user.display_avatar.url)
     em.set_footer(
         text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url
     )
@@ -40,7 +43,7 @@ Use the dropdown menu to select a category.\n
     return em
 
 
-def cog_help_embed(cog):
+def cog_help_embed(cog: Cog):
     desc = cog.full_description if cog.full_description else None
     title = cog.qualified_name
 
@@ -61,14 +64,18 @@ def cog_help_embed(cog):
     return em
 
 
-def cmds_list_embed(ctx: commands.Context, mapping):
+def cmds_list_embed(
+    ctx: commands.Context[PizzaHat],
+    mapping: Mapping[Optional[Cog], List[commands.Command]],
+):
+    assert ctx.bot.user is not None, "Bot is not logged in yet."
     em = discord.Embed(
         title=f"{ctx.bot.user.name} Help",
         timestamp=ctx.message.created_at,
         color=discord.Color.blue(),
     )
 
-    em.set_thumbnail(url=ctx.bot.user.avatar.url)
+    em.set_thumbnail(url=ctx.bot.user.display_avatar.url)
     em.set_footer(
         text=f"Requested by {ctx.author}", icon_url=ctx.author.display_avatar.url
     )
@@ -91,7 +98,11 @@ def cmds_list_embed(ctx: commands.Context, mapping):
 
 
 class HelpDropdown(ui.Select):
-    def __init__(self, mapping: dict, ctx: commands.Context):
+    def __init__(
+        self,
+        mapping: Mapping[Optional[Cog], List[commands.Command]],
+        ctx: commands.Context,
+    ):
         self.cog_mapping = mapping
         self.ctx = ctx
 
@@ -123,11 +134,16 @@ class HelpDropdown(ui.Select):
                 cog = c
                 break
 
-        await interaction.response.edit_message(embed=cog_help_embed(cog))
+        if cog:
+            await interaction.response.edit_message(embed=cog_help_embed(cog))
 
 
 class HelpView(ui.View):
-    def __init__(self, mapping: dict, ctx: commands.Context):
+    def __init__(
+        self,
+        mapping: Mapping[Optional[Cog], List[commands.Command]],
+        ctx: commands.Context,
+    ):
         super().__init__(timeout=180)
         self.ctx = ctx
         self.mapping = mapping
@@ -137,9 +153,9 @@ class HelpView(ui.View):
     async def on_timeout(self) -> None:
         if self.message:
             for child in self.children:
-                child.disabled = True  # type: ignore
+                child.disabled = True
 
-            await self.message.edit(view=self)  # type: ignore
+            await self.message.edit(view=self)
 
     async def interaction_check(self, interaction: Interaction):
         if interaction.user == self.ctx.author:
@@ -184,9 +200,9 @@ class MyHelp(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         ctx = self.context
         view = HelpView(mapping, ctx)
-        view.message = await ctx.send(embed=bot_help_embed(ctx), view=view)  # type: ignore
+        view.message = await ctx.send(embed=bot_help_embed(ctx), view=view)
 
-    async def send_command_help(self, command):
+    async def send_command_help(self, command: commands.Command):
         signature = self.get_command_signature(command)
         embed = discord.Embed(
             title=signature,
@@ -213,7 +229,9 @@ class MyHelp(commands.HelpCommand):
 
         await self.send(embed=embed)
 
-    async def send_help_embed(self, title, description, commands):
+    async def send_help_embed(
+        self, title: str, description: Optional[str], commands: Set[commands.Command]
+    ):
         embed = discord.Embed(
             title=title,
             description=description or "No help found...",
@@ -230,7 +248,7 @@ class MyHelp(commands.HelpCommand):
 
         await self.send(embed=embed)
 
-    async def send_group_help(self, group):
+    async def send_group_help(self, group: commands.Group):
         title = self.get_command_signature(group)
         await self.send_help_embed(title, group.help, group.commands)
 
@@ -250,5 +268,5 @@ class Help(Cog, emoji="❓"):
         bot.help_command = help_command
 
 
-async def setup(bot):
+async def setup(bot: PizzaHat):
     await bot.add_cog(Help(bot))
